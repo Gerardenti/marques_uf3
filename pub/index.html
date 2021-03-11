@@ -4,7 +4,8 @@
 <meta charset="utf-8"/>
 <title>Juegaco Phaser</title>
 
-<script src="//cdnjs.cloudflare.com/ajax/libs/phaser/3.52.0/phaser.min.js"></script>
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/phaser/3.52.0/phaser-arcade-physics.min.js"></script>
 </head>
 
 <body>
@@ -19,7 +20,15 @@ const config = {
 	width: scene_w,
 	height: scene_h,
 	pixelArt: true,
+	physics: {
+		default: 'arcade',
+		arcade: {
+			debug:true
+
+		}
+	},
 	scene: {
+		constructor: constructor,
 		preload: precarga,
 		create: crear, 
 		update: actualiza
@@ -29,8 +38,6 @@ const config = {
 let game = new Phaser.Game(config);
 
 let bg;
-
-const CAR_SCALE = 4;
 
 let car = [];
 
@@ -46,20 +53,24 @@ let car_right_top_y = scene_h/2 - 52;
 let car_right_bottom_x = scene_w + 128;
 let car_right_bottom_y = scene_h/2 - 136;
 
-let car_speed = 2;
-
 let player;
 let player_init_x = scene_w/2;
 let player_init_y = scene_h - 32;
 
+let car_speed = 2;
 
 let up_key;
 let right_key;
 let down_key;
 let left_key;
 
+let score_txt;
 
-let car_list = [
+let particles;
+
+let the_game;
+
+/* let car_list = [
 	{ 
 		name: "car1",
 		img: "ambulance.png",
@@ -89,32 +100,75 @@ const PATH_CARS = "PNG/Cars/";
 const PATH_CHARS = "PNG/Characters/";
 const PATH_PARTICLES = "PNG/Particles/";
 
+*/
+
+/*function constructor ()
+{
+	super();
+}*/
+
 function precarga ()
 {
+	the_game = this;
+
 	this.load.image("background", "road.jpg");
-
+	this.load.image("car1", "PNG/Cars/ambulance.png");
+	this.load.image("car2", "PNG/Cars/police.png");
+	this.load.image("car3", "PNG/Cars/sedan.png");
+	this.load.image("car4", "PNG/Cars/scooter.png");
+	this.load.image("car5", "PNG/Cars/ambulance.png");
+	this.load.image("car6", "PNG/Cars/ambulance.png");
+/*
 	car_list.forEach( car => this.load.image(car.name, PATH_CARS+car.img) );
-
-	this.load.image("character", PATH_CHARS+"woman.png");
-
-	this.load.image("fire", PATH_PARTICLES+"muzzleflash3.png");
+*/
+	//this.load.image("character", "PNG/Characters/woman.png");
+	this.load.spritesheet("character", "PNG/Characters/woman_spritesheet.png", { frameWidth: 16, frameHeight: 16 });
+	this.load.image("fire", "PNG/Particles/muzzleflash3.png");
 }
 
 function crear ()
 {
+	car = [];
+
+	particles = this.add.particles('fire');
+
 	bg = this.add.image(scene_w/2, scene_h/2, "background");
 
-	car.push(this.add.image(car_left_top_x, car_left_top_y, "car1"));
-	car.push(this.add.image(car_left_bottom_x, car_left_bottom_y, "car2"));
+	car.push(this.physics.add.image(car_left_top_x, car_left_top_y, "car1"));
+	car.push(this.physics.add.image(car_left_bottom_x, car_left_bottom_y, "car2"));
 
-  car.push(this.add.image(car_right_top_x, car_right_top_y, "car3"));
-  car.push(this.add.image(car_right_bottom_x, car_right_bottom_y, "car4"));
+  car.push(this.physics.add.image(car_right_top_x, car_right_top_y, "car3"));
+  car.push(this.physics.add.image(car_right_bottom_x, car_right_bottom_y, "car4"));
 
-	player = this.add.image(player_init_x, player_init_y, "character");
+	console.log("El numero de coches es: ",car.length);
+
+	const characterAnimation = this.anims.create({
+		key: 'walk',
+		frames: this.anims.generateFrameNumbers("character"),
+		frameRate: 3
+	});
+
+//	const sprite = this.physics.add.sprite(16, 16,"character").setScale(4);
+	player = this.add.sprite(player_init_x, player_init_y, "character");
+	//player = this.physics.add(player_init_x, player_init_y, "character");
+	player.play({ key: "walk", repeat: 999 });
+
+//	player = this.physics.add.image(player_init_x, player_init_y, "character");
+//	player.play({ key: "walk", repeat: 9 });
 
 	bg.setScale(2);
 
+	car[0].setScale(4);
+	car[1].setScale(4);
 
+	car[2].setScale(4);
+	car[2].flipX = true;
+
+	car[3].setScale(4);
+	car[3].flipX = true;
+
+
+/*
 	car.forEach( (elemento, index, array) => {
 		elemento.speed = car_list[index].speed;
 		elemento.setScale(CAR_SCALE);
@@ -137,28 +191,53 @@ function crear ()
 		x: scene_w/2,
 		y: scene_h/2
 	});
-
-	player.setScale(4);
+*/
+player.setScale(4);
 
   up_key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
   right_key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
   down_key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
   left_key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+
+	//Particula
+	particles = this.add.particles('fire');
+
+	particles.createEmitter({
+		alpha: { start: 1, end: 0 },
+		scale: { start: 0.5, end: 1.1 },
+		tint: { start: 0x000000, end: 0xff945e },
+		speed: 10,
+		accelerationY: -150,
+		angle: { min: -85, max: -95 },
+		rotate: { min: -180, max: 180 },
+		blendMode: 'ADD',
+		frequency: 2000,
+		x:0,
+		y:0
+	});
+
+
+	car.forEach(function(element){
+		the_game.physics.add.overlap(player, element, function (p, c) {
+			the_game.scene.restart();
+		}, null, the_game);
+	});
 }
 
 
 function comprueba_coche (coche, index, el_array)
 {
 	if (coche.flipX){
-		if (coche.x <= -128)
+		if (coche.x <= -128){
 			coche.x = car_right_top_x;
+		}
 	}
 	else{
-		if (coche.x >= scene_w + 128)
+		if (coche.x >= scene_w + 128){
 			coche.x = car_left_top_x;
+		}
 	}
 }
-
 
 function actualiza ()
 {
@@ -176,11 +255,13 @@ function actualiza ()
 	  player.x--;
   }
 
+	particles.x = player.x;
+	particles.y = player.y;
 
 //	car.forEach(function (coche) { coche.x += car_speed; });
 //	car.forEach( coche => coche.x += car_speed );
 
-	car.forEach(coche => {
+	car.forEach((coche, index, array) =>{
 		if (coche.flipX){
 			coche.x -= car_speed;
 		}
